@@ -2,8 +2,8 @@ from django.db import models
 from django.urls import reverse # Used to generate URLs by reversing the URL patterns
 import uuid # Required for unique book instances
 from django.contrib.auth.models import User
+from datetime import date
 
-# Create your models here.
 
 class Genre(models.Model):
     """
@@ -85,14 +85,20 @@ class BookInstance(models.Model):
         help_text='Book availability',
     )
 
-    class Meta:
-        ordering = ['due_back']
-
     def display_book_instance(self):
         """Create a string for the book instance. This is required to display the book instance in Admin."""
         return f'({self.book.title}) {self.id}'
     
     display_book_instance.short_description = 'Book Instance'
+
+    @property
+    def is_overdue(self):
+        if self.due_back and date.today() > self.due_back:
+            return True
+        return False
+
+    class Meta:
+        ordering = ['due_back']
     
     def __str__(self):
         """String for representing the Model object."""
