@@ -165,3 +165,42 @@ class LoanedBookInstancesByUserListViewTest(TestCase):
             else:
                 self.assertTrue(last_date <= book.due_back)
                 last_date = book.due_back
+
+    # Pagination tests
+    def test_pagination_is_ten(self):
+        # Change all books to be on loan
+        for book in BookInstance.objects.all():
+            book.status='o'
+            book.save()
+
+        login = self.client.login(username='testuser1', password='1X<ISRUkw+tuK')
+        response = self.client.get(reverse('my-borrowed'))
+
+        # Check our user is logged in
+        self.assertEqual(str(response.context['user']), 'testuser1')
+        # Check that we got a response "success"
+        self.assertEqual(response.status_code, 200)
+
+        self.assertTrue('is_paginated' in response.context)
+        self.assertTrue(response.context['is_paginated'] == True)
+        self.assertTrue(len(response.context['bookinstance_list']) == 10)
+
+    def test_lists_all_books(self):
+        # Change all books to be on loan
+        for book in BookInstance.objects.all():
+            book.status='o'
+            book.save()
+
+        login = self.client.login(username='testuser1', password='1X<ISRUkw+tuK')
+        # Get second page and confirm it has (exactly) remaining 5 items
+        response = self.client.get(reverse('my-borrowed')+'?page=2')
+
+        # Check our user is logged in
+        self.assertEqual(str(response.context['user']), 'testuser1')
+        # Check that we got a response "success"
+        self.assertEqual(response.status_code, 200)
+
+        self.assertTrue('is_paginated' in response.context)
+        self.assertTrue(response.context['is_paginated'] == True)
+        #print(len(response.context['bookinstance_list']))
+        self.assertTrue(len(response.context['bookinstance_list']) == 5)
