@@ -32,6 +32,9 @@ def index(request):
     # Number of visits to this view, is counted in the session variable.
     num_visits = request.session.get('num_visits', 0)
     request.session['num_visits'] = num_visits + 1
+
+    #print(vars(Book.objects.get(pk=1)))
+    #print(Book.objects.get(pk=1).id)
     
     context = {
         'num_books': num_books,
