@@ -1,5 +1,6 @@
 import datetime
 import uuid
+from pprint import pprint
 
 from django.test import TestCase
 from django.urls import reverse
@@ -327,3 +328,48 @@ class RenewBookInstancesViewTest(TestCase):
         response = self.client.post(reverse('renew-book-librarian', kwargs={'pk': self.test_bookinstance1.pk}), {'renewal_date': invalid_date_in_future})
         self.assertEqual(response.status_code, 200)
         self.assertFormError(response, 'form', 'renewal_date', 'Invalid date - renewal more than 4 weeks ahead')
+
+
+class AuthorCreateViewTest(TestCase):
+    def setUp(self):
+        # Create users
+        test_user1 = User.objects.create_user(username='testuser1', password='1X<ISRUkw+tuK')
+        test_user2 = User.objects.create_user(username='testuser2', password='2HJ1vRV0Z&3iD')
+
+        test_user1.save()
+        test_user2.save()
+        
+        permission = Permission.objects.get(name='Set book as returned')
+        test_user2.user_permissions.add(permission)
+        test_user2.save()
+
+    def test_redirect_if_logged_in_but_not_correct_permission(self):
+        login = self.client.login(username='testuser1', password='1X<ISRUkw+tuK')
+        response = self.client.get(reverse('author_create'))
+        self.assertEqual(response.status_code, 403)
+
+    def test_form_initially_death_date(self):
+        login = self.client.login(username='testuser2', password='2HJ1vRV0Z&3iD')
+        response = self.client.get(reverse('author_create'))
+        self.assertEqual(response.status_code, 200)
+        
+        self.assertEqual(response.context['form'].initial['date_of_death'], '05/01/2018')
+
+    def test_uses_correct_template(self):
+        login = self.client.login(username='testuser2', password='2HJ1vRV0Z&3iD')
+        response = self.client.get(reverse('author_create'))
+        self.assertEqual(response.status_code, 200)
+
+        # Check we used correct template
+        self.assertTemplateUsed(response, 'catalog/author_form.html')
+
+    def test_redirects_on_success(self):
+        login = self.client.login(username='testuser2', password='2HJ1vRV0Z&3iD')
+        response = self.client.post(reverse('author_create'), {'first_name': 'Lob', 'last_name': 'Mon'})
+        created_author = Author.objects.get(pk=1)
+
+        print('Author:')
+        pprint(vars(created_author))
+        self.assertRedirects(response, reverse('author-detail', kwargs={'pk': created_author.pk}))
+
+    
